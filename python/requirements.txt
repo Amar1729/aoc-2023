@@ -1,0 +1,7 @@
+more-itertools
+networkx
+z3-solver
+portion
+disjoint-set
+
+ipython
