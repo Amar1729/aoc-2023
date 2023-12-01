@@ -1,18 +1,19 @@
 #! /usr/bin/env python3
 
+from __future__ import annotations
+
 import re
 import sys
+from pathlib import Path
 
 
-def parse(fname: str):
+def parse(fname: str) -> list[str]:
     """Read from data file. Returns problem specific formatted data."""
-    with open(fname) as f:
-        lines = [line.strip() for line in f.read().splitlines() if line.strip()]
-
-    return lines
+    with Path(fname).open() as f:
+        return [line.strip() for line in f.read().splitlines() if line.strip()]
 
 
-def part1(data) -> int:
+def part1(data: list[str]) -> int:
     digits = []
     for line in data:
         stripped = re.sub(r"[a-z]", "", line)
@@ -73,7 +74,7 @@ def parse_number(s: str, forward: bool) -> int | None:
     return None
 
 
-def part2(data) -> int:
+def part2(data: list[str]) -> int:
     digits = [
         int(f"{parse_number(line, True)}{parse_number(line, False)}")
         for line in data
