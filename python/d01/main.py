@@ -24,7 +24,7 @@ def part1(data: list[str]) -> int:
 
 
 # good god
-def parse_number(s: str, forward: bool) -> int | None:
+def parse_number(s: str, forward: bool) -> int:
     if forward:
         while s:
             if (s[0] == "1") or s.startswith("one"):
@@ -71,7 +71,8 @@ def parse_number(s: str, forward: bool) -> int | None:
 
             s = s[:-1]
 
-    return None
+    emsg = "unreachable"
+    raise ValueError(emsg)
 
 
 def part2(data: list[str]) -> int:
