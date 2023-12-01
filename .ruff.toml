@@ -1,0 +1,12 @@
+[lint]
+select = [ "ALL" ]
+ignore = [
+    "D", # docstring checks
+    "INP001", # add an __init__.py
+    "FBT001", # boolean-typed argument in function def
+    "FBT003", # boolean-typed argument in function call
+    "PLR", # code complexity
+    "C", # code complexity
+    "ERA001", # commented-out code
+    "T201", # `print` found
+]
