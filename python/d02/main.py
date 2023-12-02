@@ -42,6 +42,17 @@ class Game:
             for s in self.sets
         )
 
+    def find_fewest(self) -> tuple[int, int, int]:
+        # return: red, blue, green
+        return (
+            max(s.red for s in self.sets),
+            max(s.green for s in self.sets),
+            max(s.blue for s in self.sets),
+        )
+
+    def power_set(self) -> int:
+        return functools.reduce(lambda x, y: x * y, self.find_fewest(), 1)
+
 
 def parse(fname: str) -> list[str]:
     """Read from data file. Returns problem specific formatted data."""
@@ -55,11 +66,8 @@ def part1(data: list[str]) -> int:
 
 
 def part2(data: list[str]) -> int:
-    total = 0
-
-    # todo
-
-    return total
+    games = map(Game, data)
+    return sum(g.power_set() for g in games)
 
 
 if __name__ == "__main__":
