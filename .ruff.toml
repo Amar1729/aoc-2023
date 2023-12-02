@@ -9,4 +9,6 @@ ignore = [
     "C", # code complexity
     "ERA001", # commented-out code
     "T201", # `print` found
+    "ANN101", # missing type annotation for 'self'
+    "ANN204", # missing type annotation for __init__
 ]
