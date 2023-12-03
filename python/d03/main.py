@@ -1,9 +1,7 @@
 #! /usr/bin/env python3
 
-# This solution was written on a friend's computer. Forgive my messiness.
-
 import sys
-from typing import NamedTuple
+from typing import Generator, NamedTuple
 
 
 class Point(NamedTuple):
@@ -11,7 +9,7 @@ class Point(NamedTuple):
     y: int
 
 
-def parse(fname: str):
+def parse(fname: str, strict=False):
     with open(fname) as f:
         lines = f.readlines()
 
@@ -21,10 +19,15 @@ def parse(fname: str):
         n = ""
         for x, c in enumerate(line.strip()):
             if n and not c.isdigit():
+                # yeah ... sorry :(
                 numbers.append((Point(x-1, y), int(n)))
                 n = ""
                 if c != ".":
-                    grid.add(Point(x, y))
+                    if strict:
+                        grid.add(Point(x, y))
+                    else:
+                        if c == "*":
+                            grid.add(Point(x, y))
                 continue
 
             if c == ".":
@@ -32,7 +35,12 @@ def parse(fname: str):
             if c.isdigit():
                 n += c
                 continue
-            grid.add(Point(x, y))
+
+            if strict and c == "*":
+                grid.add(Point(x, y))
+                continue
+            if (not strict):
+                grid.add(Point(x, y))
 
         if n:
             # assumes x is not unbound
@@ -68,6 +76,31 @@ def part1(fname: str) -> int:
             )
 
 
+def part2(fname: str) -> int:
+    grid, numbers = parse(fname, strict=True)
+
+    def adj(n_len: int, point: Point) -> Generator[Point, None, None]:
+        points_around = set(
+                Point(x, y)
+                for x in range(point.x - n_len, point.x + 2)
+                for y in range(point.y - 1, point.y + 2)
+                )
+
+        yield from points_around.intersection(grid)
+
+    grid_count = {}
+    for p, num in numbers:
+        for gear in adj(len(str(num)), p):
+            if gear not in grid_count:
+                grid_count[gear] = (1, 0)
+            ratio, parts = grid_count[gear]
+            ratio *= num
+            parts += 1
+            grid_count[gear] = (ratio, parts)
+
+    return sum(gear_info[0] for gear_info in grid_count.values() if gear_info[1] == 2)
+
+
 if __name__ == "__main__":
-    print(part1(sys.argv[1]))
-    # part2(data)
+    # print(part1(sys.argv[1]))
+    print(part2(sys.argv[1]))
