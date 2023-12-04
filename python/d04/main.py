@@ -4,6 +4,7 @@ from __future__ import annotations
 
 # commonly-used built-in imports. not all of these are necessarily used each day.
 import sys
+from collections import Counter
 from pathlib import Path
 from typing import NamedTuple
 
@@ -33,6 +34,9 @@ class Card(NamedTuple):
 
         return score or 0
 
+    def copy_score(self) -> int:
+        return sum([n in self.winning for n in self.obtained])
+
     def __repr__(self) -> str:
         return f"{self.card_id}: {self.winning} | {self.obtained}"
 
@@ -51,16 +55,24 @@ def part1(data: list[Card]) -> int:
     return sum(map(lambda card: card.score(), data))
 
 
-def part2(data: list[str]) -> int:
-    total = 0
+def part2(data: list[Card]) -> int:
+    copies: Counter[int] = Counter()
 
-    # todo
+    last_card_id = data[-1].card_id
 
-    return total
+    for card in data:
+        copies[card.card_id] += 1  # add the original card
+        mult = copies[card.card_id]
+        for c in range(
+            card.card_id + 1, min(last_card_id + 1, card.card_id + 1 + card.copy_score()),
+        ):
+            copies[c] += mult
+
+    return copies.total()
 
 
 if __name__ == "__main__":
     data = parse(sys.argv[1])
 
-    print(part1(data))
+    # print(part1(data))
     print(part2(data))
