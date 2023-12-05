@@ -18,7 +18,7 @@ from pprint import pprint
 
 def parse(fname: str) -> list[str]:
     """Read from data file. Returns problem specific formatted data."""
-    with open(fname) as f:
+    with Path(fname).open() as f:
         return [line.strip() for line in f.read().splitlines() if line.strip()]
 
 
