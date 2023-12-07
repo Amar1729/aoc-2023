@@ -9,7 +9,7 @@ import typing
 from collections import Counter
 from enum import Enum, auto
 from pathlib import Path
-from pprint import pprint
+from pprint import pprint  # noqa: F401
 
 # ace is high
 CARDS = {c: idx for idx, c in enumerate("23456789TJQKA")}
@@ -87,10 +87,11 @@ class HandType(Enum):
         msg = "unreachable"
         raise ValueError(msg)
 
-    def __le__(self, other):
+    def __le__(self, other: HandType):
         return (self.value > other.value) or (self == other)
 
-    def __eq__(self, other):
+    # annotation `other` will break liskov :/
+    def __eq__(self, other):  # noqa: ANN001
         return self.value == other.value
 
 
@@ -110,12 +111,14 @@ class Hand(typing.NamedTuple):
             bid = int(bid),
         )
 
-    def __eq__(self, other) -> bool:
+    # annotating `other` will break liskov :/
+    def __eq__(self, other) -> bool:  # noqa: ANN001
         if self.type_ == other.type_:
             return all(CARDS[c1] == CARDS[c2] for c1, c2 in zip(self.cards, other.cards))
         return False
 
-    def __lt__(self, other) -> bool:
+    # annotating `other` will break liskov :/
+    def __lt__(self, other) -> bool:  # noqa: ANN001
         if self.type_ < other.type_:
             return True
 
