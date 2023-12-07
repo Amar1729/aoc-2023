@@ -26,7 +26,7 @@ class HandType(Enum):
     high = auto()
 
     @classmethod
-    def from_line(cls, s: str) -> HandType:
+    def from_line_p1(cls, s: str) -> HandType:
         cards = Counter(Counter(s).values())
 
         if 5 in cards:
@@ -44,6 +44,49 @@ class HandType(Enum):
 
         return HandType.high
 
+    @classmethod
+    def from_line(cls, s: str, part2: bool=False) -> HandType:
+        if (not part2) or "J" not in s:
+            # delegate to original if there are no wilds or if we're not in part 2.
+            return HandType.from_line_p1(s)
+
+        initial = Counter(s)
+        jokers = initial["J"]
+        del initial["J"]
+        cards = Counter(initial.values())
+
+        if jokers in (4, 5):
+            return HandType.five
+
+        if jokers == 3:
+            if 2 in cards:
+                return HandType.five
+            if 1 in cards:
+                return HandType.four
+
+        if jokers == 2:
+            if 3 in cards:
+                return HandType.five
+            if 2 in cards:  # other 1
+                return HandType.four
+            if 1 in cards:  # other 1, 1
+                return HandType.three
+
+        if jokers == 1:
+            if 4 in cards:
+                return HandType.five
+            if 3 in cards:  # other 1
+                return HandType.four
+            if 2 in cards and cards[2] == 2:
+                return HandType.full
+            if 2 in cards:  # other 1, 1
+                return HandType.three
+            if 1 in cards:  # other 1, 1, 1
+                return HandType.one_p
+
+        msg = "unreachable"
+        raise ValueError(msg)
+
     def __le__(self, other):
         return (self.value > other.value) or (self == other)
 
@@ -58,11 +101,11 @@ class Hand(typing.NamedTuple):
     bid: int
 
     @classmethod
-    def from_line(cls, s: str) -> Hand:
+    def from_line(cls, s: str, part2: bool=False) -> Hand:
         cards, bid = s.split(" ")
 
         return Hand(
-            type_ = HandType.from_line(cards),
+            type_ = HandType.from_line(cards, part2),
             cards = tuple([c for c in cards]),
             bid = int(bid),
         )
@@ -89,10 +132,14 @@ class Hand(typing.NamedTuple):
         return False
 
 
-def parse(fname: str) -> list[Hand]:
+def parse(fname: str, part2: bool=False) -> list[Hand]:
     """Read from data file. Returns problem specific formatted data."""
     with Path(fname).open() as f:
-        return [Hand.from_line(line.strip()) for line in f.read().splitlines() if line.strip()]
+        return [
+            Hand.from_line(line.strip(), part2)
+            for line in f.read().splitlines()
+            if line.strip()
+        ]
 
 
 def part1(data: list[Hand]) -> int:
@@ -103,12 +150,16 @@ def part1(data: list[Hand]) -> int:
 
 
 def part2(data) -> int:
-    print(data)
-    return 0
+    # rank J as lowest card by mutating a global dict :vomit:
+    del CARDS["J"]
+    CARDS["J"] = -1
+
+    return sum(
+        hand.bid * rank
+        for rank, hand in enumerate(sorted(data), start=1)
+    )
 
 
 if __name__ == "__main__":
-    data = parse(sys.argv[1])
-
-    print(part1(data))
-    # print(part2(data))
+    # print(part1(parse(sys.argv[1])))
+    print(part2(parse(sys.argv[1], True)))
