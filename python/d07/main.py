@@ -149,7 +149,7 @@ def part1(data: list[Hand]) -> int:
     )
 
 
-def part2(data) -> int:
+def part2(data: list[Hand]) -> int:
     # rank J as lowest card by mutating a global dict :vomit:
     del CARDS["J"]
     CARDS["J"] = -1
