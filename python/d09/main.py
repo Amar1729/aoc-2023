@@ -15,6 +15,9 @@ def parse(fname: str) -> list[list[int]]:
     return [[int(i) for i in l.split(" ")] for l in lines]
 
 
+# yeah, i wrote this without ANY recursion, sue me
+# tbh, it was probably slower to write without it - i only thought of it as
+# recursive once i was halfway done typing it out anyway...
 def diff_solve(l: list[int], part2=False) -> int:
     naive_lists = [l]
     while True:
