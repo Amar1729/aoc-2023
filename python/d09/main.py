@@ -15,7 +15,7 @@ def parse(fname: str) -> list[list[int]]:
     return [[int(i) for i in l.split(" ")] for l in lines]
 
 
-def diff_solve(l: list[int]) -> int:
+def diff_solve(l: list[int], part2=False) -> int:
     naive_lists = [l]
     while True:
         naive = [y - x for x, y in zip(l, l[1:])]
@@ -24,10 +24,17 @@ def diff_solve(l: list[int]) -> int:
         if all(n == 0 for n in naive):
             break
 
-    for down, up in zip(naive_lists[::-1], naive_lists[::-1][1:]):
-        up.append(up[-1] + down[-1])
+    if not part2:
+        for down, up in zip(naive_lists[::-1], naive_lists[::-1][1:]):
+            up.append(up[-1] + down[-1])
 
-    return naive_lists[0][-1]
+        return naive_lists[0][-1]
+
+    # part2 solution: extrapolate beginning
+    for down, up in zip(naive_lists[::-1], naive_lists[::-1][1:]):
+        up.insert(0, up[0] - down[0])
+
+    return naive_lists[0][0]
 
 
 def part1(data) -> int:
@@ -35,12 +42,11 @@ def part1(data) -> int:
 
 
 def part2(data) -> int:
-    print(data)
-    return 0
+    return sum(map(lambda l: diff_solve(l, True), data))
 
 
 if __name__ == "__main__":
     data = parse(sys.argv[1])
 
-    print(part1(data))
-    # print(part2(data))
+    # print(part1(data))
+    print(part2(data))
