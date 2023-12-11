@@ -28,7 +28,7 @@ def parse(fname: str) -> set[Point]:
     return points
 
 
-def expand_universe(points: set[Point]) -> set[Point]:
+def expand_universe(points: set[Point], step: int=2) -> set[Point]:
     old_points = points
     new_points: set[Point] = set()
     empty_rows = set(range(max(p.x for p in points))) - set([p.x for p in points])
@@ -36,7 +36,7 @@ def expand_universe(points: set[Point]) -> set[Point]:
         new_points = set()
         for point in old_points:
             if point.x > row:
-                new_points.add(Point(point.x + 1, point.y))
+                new_points.add(Point(point.x + step - 1, point.y))
             else:
                 new_points.add(point)
         old_points = new_points
@@ -46,7 +46,7 @@ def expand_universe(points: set[Point]) -> set[Point]:
         new_points = set()
         for point in old_points:
             if point.y > col:
-                new_points.add(Point(point.x, point.y + 1))
+                new_points.add(Point(point.x, point.y + step - 1))
             else:
                 new_points.add(point)
         old_points = new_points
@@ -68,12 +68,16 @@ def part1(data) -> int:
 
 
 def part2(data) -> int:
-    print(data)
-    return 0
+    points = expand_universe(data, step=1_000_000)
+
+    return sum(
+        distance(p1, p2)
+        for p1, p2 in itertools.combinations(points, 2)
+    )
 
 
 if __name__ == "__main__":
     data = parse(sys.argv[1])
 
-    print(part1(data))
-    # print(part2(data))
+    # print(part1(data))
+    print(part2(data))
