@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import itertools
 import sys
 from pathlib import Path
 from pprint import pprint  # noqa: F401
@@ -52,23 +53,21 @@ def parse(fname: str) -> tuple[tuple[int, int], nx.DiGraph]:
         lines = [line.strip() for line in f.read().splitlines() if line.strip()]
 
     H = np.array([list(row) for row in lines])
-    start = tuple(*np.argwhere(H == "S"))
+    start: tuple[int, int] = tuple(*np.argwhere(H == "S"))
 
     G = nx.grid_2d_graph(*H.shape, create_using=nx.DiGraph)
-    G.remove_edges_from([
-        (a, b)
-        for a, b in G.edges
-        if not points_are_connected(H[a], a, H[b], b)
-    ])
+    G.remove_edges_from([(a, b) for a, b in G.edges if not points_are_connected(H[a], a, H[b], b)])
 
     # remove nodes that aren't properly connected
     # doesn't seem to do anything
     d = dict(G.adjacency())
-    good_nodes = set([
-        n for n, others in d.items()
-        if len(others.keys()) >= 2 and all(n in d[k] for k in others)
-    ])
+    good_nodes = set(
+        [n for n, others in d.items() if len(others.keys()) >= 2 and all(n in d[k] for k in others)]
+    )
     G.remove_nodes_from(set(G.nodes) - good_nodes)
+
+    for node in G.nodes:
+        G.add_node(node, label=H[node])
 
     return start, G
 
@@ -83,13 +82,77 @@ def part1(data) -> int:
     return len(cycles[0]) // 2
 
 
+def pretty_print(path, points, outside=None, fname=None):
+    h = None
+    if fname:
+        with Path(fname).open() as f:
+            content = f.read()
+        h = np.array([list(row) for row in content.splitlines()])
+
+    max_y = max(p[0] for p in itertools.chain(path, points))
+    max_x = max(p[1] for p in itertools.chain(path, points))
+
+    mapp = {
+        "F": "┌",
+        "L": "└",
+        "-": "─",
+        "7": "┐",
+        "|": "│",
+        "J": "┘",
+        "S": "S",
+    }
+
+    for y in range(max_y + 1):
+        row = ["X"] * (max_x + 1)
+        for x in range(max_x + 1):
+            if (y, x) in path:
+                row[x] = "#"
+                if h is not None:
+                    row[x] = mapp[h[(y, x)]]
+            if (y, x) in points:
+                row[x] = "I"
+            if (y, x) in outside:
+                row[x] = " "
+        print("".join(row))
+
+
+# who needs a 4090 when you can code up ray-tracing in python?
 def part2(data) -> int:
-    print(data)
-    return 0
+    """
+    Use a ray-tracing approach to find all points inside.
+
+    Left-to-right, a point is inside our path if we've encountered an even number of vertical
+    segments so far. However, our tracing rays move parallel to our edges in some cases, so be
+    sure to track the corners (FLJ7) as well.
+    """
+    start, g = data
+    cycle = set(next(filter(lambda p: start in p and len(p) > 2, nx.simple_cycles(g))))
+    h = {n: g.nodes[n]["label"] for n in cycle}
+
+    y_range = range(min(p[0] for p in cycle), max(p[0] for p in cycle))
+    x_range = range(min(p[1] for p in cycle), max(p[1] for p in cycle))
+
+    contained_tiles = 0
+    for row_idx in y_range:
+        parity = 0
+        line_tracking = ""
+        for col_idx in x_range:
+            p = (row_idx, col_idx)
+
+            match h.get(p, ""), line_tracking:
+                case "", _:
+                    if parity == 1:
+                        contained_tiles += 1
+                case ("|", _) | ("J", "F") | ("7", "L"):
+                    parity ^= 1
+                case ("F" | "L") as t, _:
+                    line_tracking = t
+
+    return contained_tiles
 
 
 if __name__ == "__main__":
     data = parse(sys.argv[1])
 
-    print(part1(data))
-    # print(part2(data))
+    # print(part1(data))
+    print(part2(data))
