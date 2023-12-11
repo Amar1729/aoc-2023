@@ -126,6 +126,12 @@ def part2(data) -> int:
     sure to track the corners (FLJ7) as well.
     """
     start, g = data
+
+    # there's some minor optimization over the next few lines:
+    # `cycle` is saved, even though i immediately turn it into a dict
+    # y_range and x_range together iterate over cycle points 4 times, so calculating those
+    # and `h` could probably all be done in one loop. i felt like keeping it more readable.
+
     cycle = set(next(filter(lambda p: start in p and len(p) > 2, nx.simple_cycles(g))))
     h = {n: g.nodes[n]["label"] for n in cycle}
 
