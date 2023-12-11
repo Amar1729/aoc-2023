@@ -141,18 +141,23 @@ def part2(data) -> int:
     contained_tiles = 0
     for row_idx in y_range:
         parity = 0
-        line_tracking = ""
+        prev_corner = ""
         for col_idx in x_range:
             p = (row_idx, col_idx)
 
-            match h.get(p, ""), line_tracking:
+            match h.get(p, ""), prev_corner:
                 case "", _:
                     if parity == 1:
                         contained_tiles += 1
                 case ("|", _) | ("J", "F") | ("7", "L"):
+                    # if the current character is a J or 7, since we're scanning
+                    # Left-to-right, we must have already encountered an F or L.
+                    # Notice that a FJ or L7 is equivalent to a vertical line (but
+                    # F7 and LJ is not), so change parity if we encounter those
+                    # combinations.
                     parity ^= 1
                 case ("F" | "L") as t, _:
-                    line_tracking = t
+                    prev_corner = t
 
     return contained_tiles
 
