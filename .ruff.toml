@@ -12,6 +12,7 @@ ignore = [
     "C", # code complexity
     "ERA001", # commented-out code
     "T201", # `print` found
+    "T203", # `pprint` found
     "ANN101", # missing type annotation for 'self'
     "ANN102", # missing type annotation for 'cls'
     "ANN204", # missing type annotation for __init__
