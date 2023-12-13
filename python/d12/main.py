@@ -84,9 +84,12 @@ def part1(data: list[tuple[str, tuple[int, ...]]]) -> int:
     return sum(calc(*line) for line in data)
 
 
-def part2() -> int:
-    print(data)
-    return 0
+def munge_line(line: tuple[str, tuple[int, ...]]) -> tuple[str, tuple[int, ...]]:
+    return ("?".join([line[0]] * 5), line[1] * 5)
+
+
+def part2(data: list[tuple[str, tuple[int, ...]]]) -> int:
+    return sum(calc(*munge_line(line)) for line in data)
 
 
 @pytest.mark.parametrize(
@@ -127,8 +130,23 @@ def test_p1(s: str, expected: int) -> None:
     assert expected == calc(*parse_line(s))  # noqa: S101
 
 
+@pytest.mark.parametrize(
+    ("s", "expected"),
+    [
+        ("???.### 1,1,3", 1),
+        (".??..??...?##. 1,1,3", 16384),
+        ("?#?#?#?#?#?#?#? 1,3,1,6", 1),
+        ("????.#...#... 4,1,1", 16),
+        ("????.######..#####. 1,6,5", 2500),
+        ("?###???????? 3,2,1", 506250),
+    ],
+)
+def test_p2(s: str, expected: int) -> None:
+    assert expected == calc(*munge_line(parse_line(s)))  # noqa: S101
+
+
 if __name__ == "__main__":
     data = parse(sys.argv[1])
 
-    print(part1(data))
-    # print(part2(data))
+    # print(part1(data))
+    print(part2(data))
