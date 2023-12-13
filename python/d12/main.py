@@ -150,3 +150,6 @@ if __name__ == "__main__":
 
     # print(part1(data))
     print(part2(data))
+
+    # fun to see how many times the cache has been BLASTED
+    print(calc.cache_info())
