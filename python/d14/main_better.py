@@ -47,8 +47,30 @@ def part1(data):
     return calc(shift_rocks(data))
 
 
-def part2():
-    pass
+def cycle(h):
+    for _ in range(4):
+        h = shift_rocks(h)
+        h = np.rot90(h)
+    return h
+
+
+def part2(data):
+    # for part2, cycle detection is basically the same as in ./main.py, just don't feel like
+    # writing it out. (I might try to write it with a proper cycle detection alg?)
+    # The point more is that doing a cycle with numpy is much easier than the horrible way
+    # i did it on first pass.
+    r = 1_000_000_000
+    i = 0
+    cycle_len = 0
+
+    while i < r:
+        data = cycle(data)
+        i += 1
+
+        # TODO
+        break
+
+    return calc(data)
 
 
 if __name__ == "__main__":
