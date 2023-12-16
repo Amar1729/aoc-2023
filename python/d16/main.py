@@ -32,12 +32,17 @@ def new_p(p: tuple[int, int], d: int) -> tuple[int, int]:
     raise ValueError
 
 
-def beam_tracer(h):
+def beam_tracer(h, initial=((0, 0), 0)):
     # y, x because of numpy parse
     c = collections.Counter()
 
     # right, down, left, up : 0, 1, 2, 3
-    curr: list[tuple[tuple[int, int], int]] = [((0, 0), 0)]
+    curr: list[tuple[tuple[int, int], int]] = [initial]
+
+    # for debugging, to see how slowly my brute force worked.
+    # only takes like 4.3 sec, nbd
+    # (will mess around with a parallelized optimization over in rust land)
+    # print(initial)
 
     while curr:
         p, d = curr.pop(0)
@@ -113,12 +118,28 @@ def part1(data) -> int:
 
 
 def part2(data) -> int:
-    print(data)
-    return 0
+    # can i just brute force this???
+    y, x = data.shape
+
+    starting = itertools.chain(
+        # left, going right
+        itertools.product(itertools.product(range(y), [0]), [0]),
+
+        # top, going down
+        itertools.product(itertools.product([0], range(x)), [1]),
+
+        # right, going left
+        itertools.product(itertools.product(range(y), [x - 1]), [2]),
+
+        # bottom, going up
+        itertools.product(itertools.product([y - 1], range(x)), [3]),
+    )
+
+    return max(len(set(k for k, _ in beam_tracer(data, initial))) for initial in starting)
 
 
 if __name__ == "__main__":
     data = parse(sys.argv[1])
 
-    print(part1(data))
-    # print(part2(data))
+    # print(part1(data))
+    print(part2(data))
