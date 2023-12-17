@@ -20,6 +20,24 @@ def parse(fname: str) -> npt.NDArray[np.uint8]:
 
 
 def construct_graph(h, p2: bool=False) -> nx.DiGraph:
+    """Create a graph of grid locations, including a direction and distance to reach them.
+
+    Basic idea is to store points, along with a 2-tuple:
+        0: direction that a previous point took to get here
+          # right 0 / down 1 / left 2 / up 3
+        1: total distance the path has been traveling in this direction
+
+    So an edge might look like this:
+        ((7, 1), (0, 1))    # point (7, 1),
+                            # reached by traveling right (from 7, 0)
+                            # 1 step so far while traveling right
+          ->
+        ((7, 2), (0, 2))    # point (7, 2)
+                            # same direction, but now 2 steps since we've traveled right twice
+
+    The nodes look a bit more complex, but I can just create all possible edges, throw them
+    into networkx, and ask it to do `dijkstra_path` for me.
+    """
     my, mx = h.shape
 
     edges = set()
