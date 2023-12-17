@@ -29,84 +29,74 @@ def construct_graph(h, p2: bool=False) -> nx.DiGraph:
 
     for y in range(my):
         for x in range(mx):
-            # continue going right
             for step in range(1, max_path):
+                # continue going right
                 n = ((y, x + 1), (0, step + 1))
                 c = ((y, x), (0, step))
                 if x + 1 < mx and x - step >= 0:
                     edges.add((c, n))
 
-            # continue going down
-            for step in range(1, max_path):
+                # continue going down
                 n = ((y + 1, x), (1, step + 1))
                 c = ((y, x), (1, step))
                 if y + 1 < my and y - step >= 0:
                     edges.add((c, n))
 
-            # continue going left
-            for step in range(1, max_path):
+                # continue going left
                 n = ((y, x - 1), (2, step + 1))
                 c = ((y, x), (2, step))
                 if x - 1 >= 0 and x + step < mx:
                     edges.add((c, n))
 
-            # continue going up
-            for step in range(1, max_path):
+                # continue going up
                 n = ((y - 1, x), (3, step + 1))
                 c = ((y, x), (3, step))
                 if y - 1 >= 0 and y + step < my:
                     edges.add((c, n))
 
-            # turn right, from going up/down
-            if x + 1 < mx:
-                for length in range(min_path, max_path + 1):
+            for length in range(min_path, max_path + 1):
+                # turn right, from going up/down
+                if x + 1 < mx and y - length >= 0:
                     n = ((y, x + 1), (0, 1))
+                    c = ((y, x), (1, length))
+                    edges.add((c, n))
+                if x + 1 < mx and y + length < my:
+                    n = ((y, x + 1), (0, 1))
+                    c = ((y, x), (3, length))
+                    edges.add((c, n))
 
-                    if y - length >= 0:
-                        c = ((y, x), (1, length))
-                        edges.add((c, n))
-                    if y + length < my:
-                        c = ((y, x), (3, length))
-                        edges.add((c, n))
-
-            # turn down, from going right/left
-            if y + 1 < my:
-                for length in range(min_path, max_path + 1):
+                # turn down, from going right/left
+                if y + 1 < my and x - length >= 0:
                     n = ((y + 1, x), (1, 1))
-                    if x - length >= 0:
-                        c = ((y, x), (0, length))
-                        edges.add((c, n))
-                    if x + length < mx:
-                        c = ((y, x), (2, length))
-                        edges.add((c, n))
+                    c = ((y, x), (0, length))
+                    edges.add((c, n))
+                if y + 1 < my and x + length < mx:
+                    n = ((y + 1, x), (1, 1))
+                    c = ((y, x), (2, length))
+                    edges.add((c, n))
 
-            # turn left, from going up/down
-            if x - 1 >= 0:
-                for length in range(min_path, max_path + 1):
+                # turn left, from going up/down
+                if x - 1 >= 0 and y - length >= 0:
                     n = ((y, x - 1), (2, 1))
+                    c = ((y, x), (1, length))
+                    edges.add((c, n))
+                if x - 1 >= 0 and y + length < my:
+                    n = ((y, x - 1), (2, 1))
+                    c = ((y, x), (3, length))
+                    edges.add((c, n))
 
-                    if y - length >= 0:
-                        c = ((y, x), (1, length))
-                        edges.add((c, n))
-                    if y + length < my:
-                        c = ((y, x), (3, length))
-                        edges.add((c, n))
-
-            # turn up, from going right/left
-            if y - 1 >= 0:
-                for length in range(min_path, max_path + 1):
+                # turn up, from going right/left
+                if y - 1 >= 0 and x - length >= 0:
                     n = ((y - 1, x), (3, 1))
-                    if x - length >= 0:
-                        c = ((y, x), (0, length))
-                        edges.add((c, n))
-                    if x + length < mx:
-                        c = ((y, x), (2, length))
-                        edges.add((c, n))
+                    c = ((y, x), (0, length))
+                    edges.add((c, n))
+                if y - 1 >= 0 and x + length < mx:
+                    n = ((y - 1, x), (3, 1))
+                    c = ((y, x), (2, length))
+                    edges.add((c, n))
 
-    # g = nx.grid_2d_graph(*h.shape, create_using=nx.DiGraph)
     g = nx.DiGraph()
 
-    # might overcount some edges. does this matter?
     for n1, n2 in edges:
         g.add_node(n1)
         g.add_node(n2)
@@ -173,5 +163,5 @@ def part2(data) -> int:
 if __name__ == "__main__":
     data = parse(sys.argv[1])
 
-    # print(part1(data))
+    print(part1(data))
     print(part2(data))
