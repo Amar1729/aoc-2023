@@ -8,46 +8,50 @@ from pprint import pprint  # noqa: F401
 
 import networkx as nx
 import numpy as np
+import numpy.typing as npt
 
 
-def parse(fname: str) -> list[str]:
+def parse(fname: str) -> npt.NDArray[np.uint8]:
     """Read from data file. Returns problem specific formatted data."""
     with Path(fname).open() as f:
         lines = [line.strip() for line in f.read().splitlines() if line.strip()]
 
-    return np.array([[int(c) for c in line] for line in lines])
+    return np.array([[int(c) for c in line] for line in lines]).astype(np.uint8)
 
 
-def construct_graph(h) -> nx.DiGraph:
+def construct_graph(h, p2: bool=False) -> nx.DiGraph:
     my, mx = h.shape
 
     edges = set()
 
+    max_path = 10 if p2 else 3
+    min_path = 4 if p2 else 0
+
     for y in range(my):
         for x in range(mx):
             # continue going right
-            for step in range(1, 3):
+            for step in range(1, max_path):
                 n = ((y, x + 1), (0, step + 1))
                 c = ((y, x), (0, step))
                 if x + 1 < mx and x - step >= 0:
                     edges.add((c, n))
 
             # continue going down
-            for step in range(1, 3):
+            for step in range(1, max_path):
                 n = ((y + 1, x), (1, step + 1))
                 c = ((y, x), (1, step))
                 if y + 1 < my and y - step >= 0:
                     edges.add((c, n))
 
             # continue going left
-            for step in range(1, 3):
+            for step in range(1, max_path):
                 n = ((y, x - 1), (2, step + 1))
                 c = ((y, x), (2, step))
                 if x - 1 >= 0 and x + step < mx:
                     edges.add((c, n))
 
             # continue going up
-            for step in range(1, 3):
+            for step in range(1, max_path):
                 n = ((y - 1, x), (3, step + 1))
                 c = ((y, x), (3, step))
                 if y - 1 >= 0 and y + step < my:
@@ -55,41 +59,49 @@ def construct_graph(h) -> nx.DiGraph:
 
             # turn right, from going up/down
             if x + 1 < mx:
-                for length in range(1, 4):
+                for length in range(min_path, max_path + 1):
                     n = ((y, x + 1), (0, 1))
 
-                    c = ((y, x), (1, length))
-                    edges.add((c, n))
-                    c = ((y, x), (3, length))
-                    edges.add((c, n))
+                    if y - length >= 0:
+                        c = ((y, x), (1, length))
+                        edges.add((c, n))
+                    if y + length < my:
+                        c = ((y, x), (3, length))
+                        edges.add((c, n))
 
             # turn down, from going right/left
             if y + 1 < my:
-                for length in range(1, 4):
+                for length in range(min_path, max_path + 1):
                     n = ((y + 1, x), (1, 1))
-                    edges.update([
-                        (((y, x), (0, length)), n),
-                        (((y, x), (2, length)), n),
-                    ])
+                    if x - length >= 0:
+                        c = ((y, x), (0, length))
+                        edges.add((c, n))
+                    if x + length < mx:
+                        c = ((y, x), (2, length))
+                        edges.add((c, n))
 
             # turn left, from going up/down
             if x - 1 >= 0:
-                for length in range(1, 4):
+                for length in range(min_path, max_path + 1):
                     n = ((y, x - 1), (2, 1))
 
-                    c = ((y, x), (1, length))
-                    edges.add((c, n))
-                    c = ((y, x), (3, length))
-                    edges.add((c, n))
+                    if y - length >= 0:
+                        c = ((y, x), (1, length))
+                        edges.add((c, n))
+                    if y + length < my:
+                        c = ((y, x), (3, length))
+                        edges.add((c, n))
 
             # turn up, from going right/left
             if y - 1 >= 0:
-                for length in range(1, 4):
+                for length in range(min_path, max_path + 1):
                     n = ((y - 1, x), (3, 1))
-                    edges.update([
-                        (((y, x), (0, length)), n),
-                        (((y, x), (2, length)), n),
-                    ])
+                    if x - length >= 0:
+                        c = ((y, x), (0, length))
+                        edges.add((c, n))
+                    if x + length < mx:
+                        c = ((y, x), (2, length))
+                        edges.add((c, n))
 
     # g = nx.grid_2d_graph(*h.shape, create_using=nx.DiGraph)
     g = nx.DiGraph()
@@ -108,11 +120,31 @@ def construct_graph(h) -> nx.DiGraph:
     e = (my - 1, mx - 1)
     new_edges = [
         (node, (e, (-1, -1)))
-        for node in filter(lambda n_l: n_l[0] == e, g.nodes)
+        for node in filter(lambda n_l: n_l[0] == e and n_l[1][1] >= min_path, g.nodes)
     ]
     g.add_edges_from(new_edges)
 
     return g
+
+
+def debug(h, path) -> None:
+    hc = h.astype("U")
+    red = "\033[31m"  # ]
+    noc = "\033[0m"  # ]
+
+    for n, (d, _) in path:
+        match d:
+            case 0:
+                hc[n] = red + ">" + noc
+            case 1:
+                hc[n] = red + "v" + noc
+            case 2:
+                hc[n] = red + "<" + noc
+            case 3:
+                hc[n] = red + "^" + noc
+
+    for line in hc:
+        print("".join(line))
 
 
 def search(g, h) -> int:
@@ -134,12 +166,12 @@ def part1(data) -> int:
 
 
 def part2(data) -> int:
-    print(data)
-    return 0
+    g = construct_graph(data, p2=True)
+    return search(g, data)
 
 
 if __name__ == "__main__":
     data = parse(sys.argv[1])
 
-    print(part1(data))
-    # print(part2(data))
+    # print(part1(data))
+    print(part2(data))
