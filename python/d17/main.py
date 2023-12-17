@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import itertools
-import math
 import sys
 from pathlib import Path
 from pprint import pprint  # noqa: F401
@@ -102,37 +100,35 @@ def construct_graph(h) -> nx.DiGraph:
         g.add_node(n2)
     g.add_edges_from(edges)
 
+    # special case: add start and end nodes.
+    g.add_edge(((0, 0), (-1, -1)), ((0, 1), (0, 1)))
+    g.add_edge(((0, 0), (-1, -1)), ((1, 0), (1, 1)))
+    h[(0, 0)] = 0
+
+    e = (my - 1, mx - 1)
+    new_edges = [
+        (node, (e, (-1, -1)))
+        for node in filter(lambda n_l: n_l[0] == e, g.nodes)
+    ]
+    g.add_edges_from(new_edges)
+
     return g
 
 
 def search(g, h) -> int:
-    s_candidates = [
-        ((0, 1), (0, 1)),
-        ((1, 0), (1, 1)),
-    ]
-
     # ending node coordinates
     y, x = h.shape
     e = (y - 1, x - 1)
 
-    min_loss = math.inf
+    start = ((0, 0), (-1, -1))
+    end = (e, (-1, -1))
 
-    for s in s_candidates:
-        for l in itertools.product((0, 1), range(1, 4)):
-            t = (e, l)
-            path = nx.dijkstra_path(g, s, t, weight=lambda n1, n2, e: h[n1[0]])
-
-            loss = sum(h[n[0]] for n in path)
-            print(s, t, loss)
-            min_loss = min(min_loss, loss)
-
-    return min_loss
+    print(start, end)
+    path = nx.dijkstra_path(g, start, end, weight=lambda n1, n2, e: h[n1[0]])
+    return sum(h[n[0]] for n in path) - h[path[-1][0]]
 
 
 def part1(data) -> int:
-    # this is not particularly fast, probably because i'm constructing the graph and calling
-    # networkx in a dumb way. How am i supposed to encode the concept of a maximum length for
-    # a path in one particular direction?
     g = construct_graph(data)
     return search(g, data)
 
