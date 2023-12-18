@@ -7,15 +7,18 @@ from pathlib import Path
 from pprint import pprint  # noqa: F401
 
 
+D = {d: i for i, d in enumerate("RDLU")}
+
+
 def parse(fname: str) -> list[str]:
     """Read from data file. Returns problem specific formatted data."""
     with Path(fname).open() as f:
         return [line.strip() for line in f.read().splitlines() if line.strip()]
 
 
-def line_parse(line: str) -> tuple[str, int]:
+def line_parse(line: str) -> tuple[int, int]:
     d, m, _ = line.split(" ")
-    return d, int(m)
+    return D[d], int(m)
 
 
 def true_line_parse(line: str) -> tuple[int, int]:
@@ -25,11 +28,11 @@ def true_line_parse(line: str) -> tuple[int, int]:
     return int(s_hex[-1]), m
 
 
-def find_vertices(lines: list[str], p2: bool=False) -> tuple[int, list[tuple[int, int]]]:
+def find_vertices(lines: list[str], p2: bool = False) -> tuple[int, list[tuple[int, int]]]:
     vertices: list[tuple[int, int]] = [(0, 0)]
 
     perimeter = 0
-    for (d, m) in map(true_line_parse if p2 else line_parse, lines):
+    for d, m in map(true_line_parse if p2 else line_parse, lines):
         x, y = vertices[-1]
         match d:
             case 0:
@@ -67,65 +70,18 @@ def picks(perimeter: int, vertices: list[tuple[int, int]]) -> int:
     return shoelace(vertices) + 1 - (perimeter // 2)
 
 
-def debug(points):
-    min_x = min(p[0] for p in points)
-    min_y = min(p[1] for p in points)
-    max_x = max(p[0] for p in points)
-    max_y = max(p[1] for p in points)
-
-    for y in range(min_y, max_y + 1):
-        l = "".join(["#" if (x, y) in points else " " for x in range(min_x, max_x + 1)])
-        print(l)
-
-
 def part1(data) -> int:
-    points = set()
-    curr = (0, 0)
-    points.add(curr)
+    # initially, i used a very naive approach of adding each point on the perimeter to a set,
+    # then iterating over points outside the set to create a negative, then taking the length
+    # of what was remaining. This was fast to implement, but clearly too slow for the magnitude
+    # of numbers in part2. I'm going back and rewriting for consistency.
+    perimeter, vertices = find_vertices(data)
 
-    for line in data:
-        d, m, col = line.split(" ")
+    inside_area = picks(perimeter, vertices)
 
-        for i in range(int(m)):
-            x, y = curr
-            if d == "R":
-                curr = (x + 1, y)
-            if d == "D":
-                curr = (x, y + 1)
-            if d == "L":
-                curr = (x - 1, y)
-            if d == "U":
-                curr = (x, y - 1)
-            points.add(curr)
+    # correct to include the points on the perimeter
+    return inside_area + perimeter
 
-    min_x = min(p[0] for p in points)
-    min_y = min(p[1] for p in points)
-    max_x = max(p[0] for p in points)
-    max_y = max(p[1] for p in points)
-
-    # reverse floodfill
-    outer_points = set([
-        (x, y)
-        for y in range(min_y - 1, max_y + 2)
-        for x in range(min_x - 1, max_x + 2)
-    ])
-
-    curr = (min_x - 1, min_y - 1)
-    outer_points -= set([curr])
-    q = [curr]
-
-    while q:
-        curr = q.pop(0)
-        for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
-            x, y = curr
-            n = (x + dx, y + dy)
-            if n in outer_points and n not in points:
-                outer_points.remove(n)
-                q.append(n)
-
-    # debug(points)
-
-    return len(outer_points)
 
 
 def part2(data) -> int:
@@ -140,5 +96,5 @@ def part2(data) -> int:
 if __name__ == "__main__":
     data = parse(sys.argv[1])
 
-    # print(part1(data))
+    print(part1(data))
     print(part2(data))
