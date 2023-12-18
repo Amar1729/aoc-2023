@@ -6,8 +6,8 @@ import sys
 from pathlib import Path
 from pprint import pprint  # noqa: F401
 
-
 D = {d: i for i, d in enumerate("RDLU")}
+Point = tuple[int, int]
 
 
 def parse(fname: str) -> list[str]:
@@ -28,8 +28,8 @@ def true_line_parse(line: str) -> tuple[int, int]:
     return int(s_hex[-1]), m
 
 
-def find_vertices(lines: list[str], p2: bool = False) -> tuple[int, list[tuple[int, int]]]:
-    vertices: list[tuple[int, int]] = [(0, 0)]
+def find_vertices(lines: list[str], p2: bool = False) -> tuple[int, list[Point]]:
+    vertices: list[Point] = [(0, 0)]
 
     perimeter = 0
     for d, m in map(true_line_parse if p2 else line_parse, lines):
@@ -53,7 +53,7 @@ def find_vertices(lines: list[str], p2: bool = False) -> tuple[int, list[tuple[i
     return perimeter, vertices
 
 
-def shoelace(vertices: list[tuple[int, int]]) -> int:
+def shoelace(vertices: list[Point]) -> int:
     # calculate the area of our shape
     s = 0
     for (x1, y1), (x2, y2) in zip(vertices, [*vertices[1:], vertices[0]]):
@@ -62,7 +62,7 @@ def shoelace(vertices: list[tuple[int, int]]) -> int:
     return abs(s) // 2
 
 
-def picks(perimeter: int, vertices: list[tuple[int, int]]) -> int:
+def picks(perimeter: int, vertices: list[Point]) -> int:
     # count points strictly inside our shape
     # A = i + b/2 - 1
     # i = points inside
@@ -70,7 +70,7 @@ def picks(perimeter: int, vertices: list[tuple[int, int]]) -> int:
     return shoelace(vertices) + 1 - (perimeter // 2)
 
 
-def part1(data) -> int:
+def part1(data: list[str]) -> int:
     # initially, i used a very naive approach of adding each point on the perimeter to a set,
     # then iterating over points outside the set to create a negative, then taking the length
     # of what was remaining. This was fast to implement, but clearly too slow for the magnitude
@@ -84,7 +84,7 @@ def part1(data) -> int:
 
 
 
-def part2(data) -> int:
+def part2(data: list[str]) -> int:
     perimeter, vertices = find_vertices(data, p2=True)
 
     inside_area = picks(perimeter, vertices)
