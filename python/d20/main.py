@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import collections
 import dataclasses
+import math
 import sys
 from pathlib import Path
 from pprint import pprint  # noqa: F401
@@ -99,7 +100,9 @@ def parse(fname: str) -> dict[str, Module]:
     return modules_d
 
 
-def push_button(modules: dict[str, Module]) -> tuple[int, int]:
+# side note: i really don't like this type signature.
+# i'm not sure how to get it to look better, although i thought type guards could help...
+def push_button(modules: dict[str, Module], part2: bool = False) -> tuple[int, int] | str:
     """Modifies the input modules. Returns number of high/low pulses sent."""
 
     signal = modules["broadcaster"].send(False)
@@ -113,6 +116,12 @@ def push_button(modules: dict[str, Module]) -> tuple[int, int]:
 
     highs = lows = 0
     # of high school football
+
+    # PART 2:
+    # we are looking for particular receivers, whenever they get set.
+    # specifically, we are looking for any of the ones that feed into the "mf"
+    # module, which is the only module that feeds into the "rx" module.
+    found = ""
 
     while q:
         src, rec, signal = q.pop(0)
@@ -131,6 +140,8 @@ def push_button(modules: dict[str, Module]) -> tuple[int, int]:
             # rx module is EFFED? will that be for p2?
             if rec not in modules:
                 continue
+            if rec == "mf" and signal is True:
+                found = src
             # keep in mind that sending a signal may mutate a module.
             # make sure to send the source so conj mods can do their thing?
             output = modules[rec].send(signal, src)
@@ -140,6 +151,9 @@ def push_button(modules: dict[str, Module]) -> tuple[int, int]:
                     for m_rec in modules[rec].receivers
                 ])
 
+    if isinstance(part2, str):
+        return found
+
     # add 1 to lows for the initial button->broadcaster press.
     return highs, lows + 1
 
@@ -147,7 +161,9 @@ def push_button(modules: dict[str, Module]) -> tuple[int, int]:
 def part1(data: dict[str, Module]) -> int:
     th = tl = 0
     for b in range(1000):
-        h, l = push_button(data)
+        r = push_button(data)
+        assert isinstance(r, tuple)
+        h, l = r
         print(f"\nPUSH BUTTON: {b} {h} {l}\n")
         th += h
         tl += l
@@ -155,13 +171,24 @@ def part1(data: dict[str, Module]) -> int:
     return th * tl
 
 
-def part2(data) -> int:
-    print(data)
-    return 0
+def part2(data: dict[str, Module]) -> int:
+    b = 0
+    prevs: dict[str, int] = {}
+    while len(prevs) < 4:
+        rec = push_button(data, True)
+        assert isinstance(rec, str)
+        b += 1
+        # print(f"PUSH BUTTON: {b}")
+
+        if rec and rec not in prevs:
+            prevs[rec] = b
+
+    # woop woop
+    return math.lcm(*prevs.values())
 
 
 if __name__ == "__main__":
     data = parse(sys.argv[1])
 
-    print(part1(data))
-    # print(part2(data))
+    # print(part1(data))
+    print(part2(data))
