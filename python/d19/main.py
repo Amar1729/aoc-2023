@@ -12,6 +12,14 @@ from pprint import pprint  # noqa: F401
 import pytest
 
 
+# ... Gross.
+class CubeSplitKwargs(typing.TypedDict):
+    attr: typing.NotRequired[str]
+    op: typing.NotRequired[str]
+    bound: typing.NotRequired[int]
+    rule: typing.NotRequired[Rule]
+
+
 class Part(typing.NamedTuple):
     x: int
     m: int
@@ -49,171 +57,6 @@ class Workflow:
                 return rule.target
 
         raise ValueError
-
-
-@dataclasses.dataclass
-class Layer:
-    x: set[int]
-    m: set[int]
-    a: set[int]
-    s: set[int]
-
-    def __init__(self, blank: bool = False):
-        if blank:
-            for k in "xmas":
-                setattr(self, k, set(range(0)))
-        else:
-            for k in "xmas":
-                setattr(self, k, set(range(1, 4001)))
-
-    def filter_rule(self, rule: Rule) -> None:
-        s = getattr(self, rule.lop)
-
-        match rule.target, rule.op:
-            case "A", "<":
-                s &= set(range(1, rule.rop))
-            case "A", ">":
-                s &= set(range(rule.rop + 1, 4001))
-            case "R", "<":
-                s = set(range(rule.rop, 4001))
-            case "R", ">":
-                s = set(range(1, rule.rop + 1))
-
-            # same as A?
-            case _, "<":
-                s &= set(range(1, rule.rop))
-            case _, ">":
-                s &= set(range(rule.rop + 1, 4001))
-
-        setattr(self, rule.lop, s)
-
-    def filter_(self, other: Layer, lop: str | None = None) -> None:
-        if lop:
-            s = getattr(self, lop)
-            s -= getattr(other, lop)
-            setattr(self, lop, s)
-            return
-
-        for k in "xmas":
-            s = getattr(self, k)
-            s -= getattr(other, k)
-            setattr(self, k, s)
-
-    def combined(self, other: Layer) -> Layer | None:
-        # how slow is this?
-        if all(getattr(self, k).issuperset(getattr(other, k)) for k in "xmas"):
-            return self
-
-        if all(getattr(other, k).issuperset(getattr(self, k)) for k in "xmas"):
-            return other
-
-        s = 0
-        bkey = None
-        for k in "xmas":
-            if getattr(self, k) == getattr(other, k):
-                s += 1
-            else:
-                bkey = k
-        if s == 3 and bkey is not None:
-            ns = getattr(self, bkey) | getattr(other, bkey)
-            setattr(self, bkey, ns)
-            return self
-
-        return None
-
-    def __repr__(self) -> str:
-        j = []
-        for k in "xmas":
-            s = getattr(self, k)
-            bounds = []
-            if s:
-                sn = sx = None
-                for c in range(1, 4001):
-                    if c in s:
-                        if sn is None:
-                            sn = c
-                        sx = c
-                    else:
-                        if sn is not None:
-                            bounds.append((sn, sx))
-                            sn = None
-                            sx = None
-
-                if sn is not None:
-                    bounds.append((sn, sx))
-
-                b = "|".join([f"{n},{m}" for n, m in bounds])
-                j.append(f"{k} = [{b}]")
-            else:
-                j.append(f"{k}=[]")
-        return "Layer: " + ", ".join(j)
-
-
-def constrain2(flow: Workflow, flows: dict[str, Workflow]) -> list[Layer]:
-    layers: list[Layer] = []
-
-    for rule in flow.rules[::-1]:
-        match rule.target, rule.lop:
-            case "A", "":
-                layers.append(Layer())
-            case "R", "":
-                pass
-            case "A", _:
-                new_layer = Layer()
-                new_layer.filter_rule(rule)
-                for layer in layers:
-                    layer.filter_(new_layer, rule.lop)
-                layers.append(new_layer)
-            case "R", _:
-                for layer in layers:
-                    layer.filter_rule(rule)
-            case target, "":
-                layers.extend(constrain2(flows[target], flows))
-            case target, _:
-                other_layers = constrain2(flows[target], flows)
-                if not other_layers:
-                    print(flow.name)
-                    print(f"not other layers: {rule.lop} {rule.op} {rule.rop}")
-                    pprint(layers)
-                    fake_layer = Layer(blank=True)
-                    fake_layer.filter_rule(Rule("R", rule.lop, rule.rop, rule.op))
-                    # ???
-                    fake_layer.filter_rule(
-                        Rule(
-                            "R",
-                            rule.lop,
-                            rule.rop - 1,
-                            "<" if rule.op == ">" else ">",
-                        ),
-                    )
-                    print(f"fake layer: {fake_layer}")
-                    for layer in layers:
-                        layer.filter_(fake_layer)
-                    print()
-                    pprint(layers)
-                    print()
-                for other_layer in other_layers:
-                    other_layer.filter_rule(rule)
-                    for layer in layers:
-                        layer.filter_(other_layer, rule.lop)
-                layers.extend(other_layers)
-
-    if not layers:
-        return []
-
-    combined = [layers.pop(0)]
-    for s in layers:
-        p = combined[-1].combined(s)
-        if p is not None:
-            combined[-1] = p
-        else:
-            combined.append(s)
-
-    print(f"Layers for: {flow.name}")
-    pprint(combined)
-    print()
-
-    return combined
 
 
 def parse(fname: str) -> tuple[list[Workflow], list[Part]]:
@@ -275,16 +118,14 @@ def part1(data: tuple[list[Workflow], list[Part]]) -> int:
 @pytest.mark.parametrize(
     ("flow_name", "count"),
     [
+        # mostly worked out by hand; some values taken by just calculation and assuming
+        # correctness.
         ("crn", (4000 - 2662) * 4000**3),
         ("gd", 0),
         ("hdj", ((4000 - 838) * 4000**3) + (838 * 1716 * 4000**2)),
         ("lnx", 4000**4),
         ("pv", 1716 * 4000**3),
         ("qkq", (1415 * 4000**3) + (4000 - 2662) * 4000**3),
-        # check this math later
-        # [Layer: x = [(1,4000)], m = [(1,838)], a = [(1,1716)], s = [(1,2770)],
-        # Layer: x = [(1,4000)], m = [(839,1800)], a = [(1,4000)], s = [(1,2770)],
-        # Layer: x = [(1,4000)], m = [(1,4000)], a = [(1,4000)], s = [(2771,4000)]]
         ("qqz", 137288968640000),
         ("qs", 4000**4),
         ("rfg", 2440 * (4000 - 536) * 4000**2),
@@ -297,22 +138,138 @@ def part1(data: tuple[list[Workflow], list[Part]]) -> int:
         ("in", 167409079868000),
     ],
 )
-def test_count(flow_name: str, count: int) -> None:
+def test_cube(flow_name: str, count: int) -> None:
     _flows, _ = parse("sample.txt")
     flows = {w.name: w for w in _flows}
-    assert count == calc(flow_name, flows)
+    assert count == apply_flows(flow_name, flows)  # noqa: S101
 
 
-def calc(target: str, flows: dict[str, Workflow]) -> int:
-    return sum(
-        math.prod(len(getattr(layer, k)) for k in "xmas")
-        for layer in constrain2(flows[target], flows)
-    )
+@dataclasses.dataclass
+class Cube:
+    """Set of x.m.a.s. points that can be easily split down.
+
+    Look, i know this isn't a *cube*, it's more technically a 4-orthotope, or hyperrectangle
+    (similar to a hypercube, but with faces that aren't necessarily congruent). That's a bit
+    wordy for a class name though...
+    """
+    def __init__(self, init: bool=True):
+        if init:
+            self.x = set(range(1, 4001))
+            self.m = set(range(1, 4001))
+            self.a = set(range(1, 4001))
+            self.s = set(range(1, 4001))
+        else:
+            self.x = set()
+            self.m = set()
+            self.a = set()
+            self.s = set()
+
+    def __repr__(self) -> str:
+        st = "Cube("
+        for k in "xmas":
+            s = getattr(self, k)
+            st += f"{k}=[{min(s)}, {max(s)}], "
+        return st[:-3] + ")"
+
+    def copy(self, not_with_label: str) -> Cube:
+        cube = Cube(False)
+        for k in "xmas":
+            if k != not_with_label:
+                setattr(cube, k, getattr(self, k))
+        return cube
+
+    def count(self) -> int:
+        return math.prod(len(getattr(self, k)) for k in "xmas")
+
+    def blank(self) -> None:
+        # blank out a cube (if a rule is a reject rule and wants to blank us)
+        for k in "xmas":
+            setattr(self, k, set())
+
+    def split(self, **kwargs: typing.Unpack[CubeSplitKwargs]) -> tuple[Cube, Cube]:
+        """Returns the cube of accepted points and the cube of rejected points.
+
+        Here, "accepted" and "rejected" means for a particular rule (what's causing the split)
+        and not specifically the A/R targets used in the workflow.
+        """
+
+        rule = kwargs.get("rule", None)
+        if rule:
+            attr = rule.lop
+            op = rule.op
+            bound = rule.rop
+        else:
+            # i'm not sure how to type-guard a TypedDict?
+            try:
+                attr = kwargs["attr"]
+                op = kwargs["op"]
+                bound = kwargs["bound"]
+            except KeyError:
+                msg = "`rule` or all of `attr`, `op`, `bound` are required."
+                raise TypeError(msg) from KeyError
+
+        if op == "<":
+            ns = set(range(1, bound))
+        elif op == ">":
+            ns = set(range(bound + 1, 4001))
+        else:
+            msg = "`op` must be <>."
+            raise ValueError(msg)
+
+        s = getattr(self, attr)
+
+        accepted_points = s & ns
+        acc = self.copy(attr)
+        setattr(acc, attr, accepted_points)
+
+        rejected_points = s - accepted_points
+        rej = self.copy(attr)
+        setattr(rej, attr, rejected_points)
+
+        return (acc, rej)
+
+
+def apply_flows(flow_name: str, flows: dict[str, Workflow], cube: Cube | None = None) -> int:
+    if cube is None:
+        cube = Cube()
+
+    s = 0
+
+    # iterate over each Rule in our Workflow.
+    # as we do, we successively split our cube:
+    # A rules take some of the cube, and add to our total
+    # R rules takes some of the cube, and dont add
+    # other targets recurse, to find the proper count of those flows.
+    for rule in flows[flow_name].rules:
+        match rule.target, rule.lop:
+            case "A", "":
+                assert cube is not None  # noqa: S101
+                s += cube.count()
+            case "R", "":
+                pass
+            case "A", _:
+                assert cube is not None  # noqa: S101
+                acc, cube = cube.split(rule=rule)
+                s += acc.count()
+            case "R", _:
+                assert cube is not None  # noqa: S101
+                _, cube = cube.split(rule=rule)
+            case _ as t, "":
+                # end of the line: add any results from this target, given our current cube.
+                s += apply_flows(t, flows, cube)
+            case _ as t, _:
+                assert cube is not None  # noqa: S101
+                acc, cube = cube.split(rule=rule)
+                s += apply_flows(t, flows, acc)
+            case _:
+                raise ValueError(rule)
+
+    return s
 
 
 def part2(data: tuple[list[Workflow], list[Part]]) -> int:
     flows = {w.name: w for w in data[0]}
-    return calc("in", flows)
+    return apply_flows("in", flows)
 
 
 if __name__ == "__main__":
