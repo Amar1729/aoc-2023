@@ -5,29 +5,29 @@ from __future__ import annotations
 import dataclasses
 import math
 import sys
-import typing
 from pathlib import Path
 from pprint import pprint  # noqa: F401
+from typing import NamedTuple, NotRequired, TypedDict, Unpack
 
 import pytest
 
 
 # ... Gross.
-class CubeSplitKwargs(typing.TypedDict):
-    attr: typing.NotRequired[str]
-    op: typing.NotRequired[str]
-    bound: typing.NotRequired[int]
-    rule: typing.NotRequired[Rule]
+class CubeSplitKwargs(TypedDict):
+    attr: NotRequired[str]
+    op: NotRequired[str]
+    bound: NotRequired[int]
+    rule: NotRequired[Rule]
 
 
-class Part(typing.NamedTuple):
+class Part(NamedTuple):
     x: int
     m: int
     a: int
     s: int
 
 
-class Rule(typing.NamedTuple):
+class Rule(NamedTuple):
     target: str
     lop: str
     rop: int
@@ -64,16 +64,16 @@ def parse(fname: str) -> tuple[list[Workflow], list[Part]]:
     with Path(fname).open() as f:
         content = f.read().split("\n\n")
 
-    rules = [line.strip() for line in content[0].splitlines()]
-    parts = [line.strip() for line in content[1].splitlines()]
-
-    return list(map(parse_workflow, rules)), list(map(parse_part, parts))
+    return (
+        list(map(parse_workflow, content[0].splitlines())),
+        list(map(parse_part, content[1].splitlines())),
+    )
 
 
 def parse_workflow(line: str) -> Workflow:
     c = line.index("{")  # }
     name = line[:c]
-    rest = line[c+1:-1].split(",")
+    rest = line[c + 1 : -1].split(",")
 
     rules = []
 
@@ -152,7 +152,8 @@ class Cube:
     (similar to a hypercube, but with faces that aren't necessarily congruent). That's a bit
     wordy for a class name though...
     """
-    def __init__(self, init: bool=True):
+
+    def __init__(self, init: bool = True):
         if init:
             self.x = set(range(1, 4001))
             self.m = set(range(1, 4001))
@@ -186,7 +187,7 @@ class Cube:
         for k in "xmas":
             setattr(self, k, set())
 
-    def split(self, **kwargs: typing.Unpack[CubeSplitKwargs]) -> tuple[Cube, Cube]:
+    def split(self, **kwargs: Unpack[CubeSplitKwargs]) -> tuple[Cube, Cube]:
         """Returns the cube of accepted points and the cube of rejected points.
 
         Here, "accepted" and "rejected" means for a particular rule (what's causing the split)
