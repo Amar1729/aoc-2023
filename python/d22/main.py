@@ -55,7 +55,7 @@ def shift_brick(brick: set[Point]) -> set[Point]:
     )
 
 
-def part1(data) -> int:
+def part1(data, p2: bool) -> int | dict[str, list[str]]:
     # anything that settles onto the ground gets added here, for easier cmp
     settled: dict[tuple[int, int, int], str] = {}
 
@@ -124,6 +124,8 @@ def part1(data) -> int:
 
     disintegrate_check: dict[str, bool] = {}
 
+    support_graph: dict[str, list[str]] = {}
+
     it = sorted(
         set(settled.items()),
         key=lambda i: i[0][2],
@@ -145,6 +147,9 @@ def part1(data) -> int:
 
         # print(f"bricks below brick {label}:", bricks_below)
 
+        # kind of gross tbh
+        support_graph[label] = list(bricks_below)
+
         if len(bricks_below) == 1:
             # the below brick has at least one brick (this one)
             # that only has it as a support. can't disintegrate.
@@ -155,16 +160,48 @@ def part1(data) -> int:
                 if below not in disintegrate_check:
                     disintegrate_check[below] = True
 
+    if p2:
+        return support_graph
+
     return sum(disintegrate_check.values())
 
 
 def part2(data) -> int:
-    print(data)
-    return 0
+    # i really need to figure out how to nicely type-narrow with boolean arguments ...?
+    supporting_graph = part1(data, True)
+    assert isinstance(supporting_graph, dict)
+
+    would_fall = 0
+
+    # gross. put together an easier way to iterate through "bricks above <label>"
+    supported: dict[str, set[str]] = {}
+    for label, deps in supporting_graph.items():
+        if label not in supported:
+            supported[label] = set()
+        for dep in deps:
+            if dep not in supported:
+                supported[dep] = set()
+
+            supported[dep].add(label)
+
+    # walk through dep graph. mark a node as visited (in would_dis set), then check its
+    # dependents. If everything a brick rests on is in would_dis, it will also disintegrate.
+    for label, above in supported.items():
+        would_dis = set([label])
+        q = list(above.copy())
+        while q:
+            curr = q.pop(0)
+            if all(brick in would_dis for brick in supporting_graph[curr]):
+                q.extend(supported[curr])
+                would_dis.update([curr])
+
+        would_fall += len(would_dis) - 1
+
+    return would_fall
 
 
 if __name__ == "__main__":
     data = parse(sys.argv[1])
 
-    print(part1(data))
-    # print(part2(data))
+    # print(part1(data))
+    print(part2(data))
