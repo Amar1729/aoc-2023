@@ -10,6 +10,7 @@ from pprint import pprint  # noqa: F401
 
 import numpy as np
 import numpy.typing as npt
+import z3
 
 
 class Point(typing.NamedTuple):
@@ -108,12 +109,45 @@ def part1(data: list[Vec]) -> int:
 
 
 def part2(data) -> int:
-    print(data)
-    return 0
+    # ran into several problems with the z3 solution on my first few attempts.
+    # will post diff code later; i generally just got timeouts when trying to get the model().
+
+    I = lambda name: z3.Real(name)
+
+    solver = z3.Solver()
+
+    rx, ry, rz = I("rock_x"), I("rock_y"), I("rock_z")
+    vx, vy, vz = I("rock_vx"), I("rock_vy"), I("rock_vz")
+
+    for idx, stone in enumerate(data):
+
+        # t_0 doesn't actually mean time=0; it means the time for collision between
+        # our rock and hailstone 0.
+        t = I(f"t_{idx}")
+
+        solver.add(t >= 0)
+
+        solver.add(stone.p.x + stone.v.x * t == rx + vx * t)
+        solver.add(stone.p.y + stone.v.y * t == ry + vy * t)
+        solver.add(stone.p.z + stone.v.z * t == rz + vz * t)
+
+        # only need a few equations to solve, since the problem guarantees there's
+        # only one soln
+        if idx > 3:
+            break
+
+    assert solver.check() == z3.sat
+    model = solver.model()
+
+    x = model.eval(rx).as_long()
+    y = model.eval(ry).as_long()
+    z = model.eval(rz).as_long()
+
+    return x + y + z
 
 
 if __name__ == "__main__":
     data = parse(sys.argv[1])
 
-    print(part1(data))
-    # print(part2(data))
+    # print(part1(data))
+    print(part2(data))
