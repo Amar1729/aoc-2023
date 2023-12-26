@@ -2,24 +2,17 @@
 
 from __future__ import annotations
 
-# commonly-used built-in imports. not all of these are necessarily used each day.
-import collections
-import functools
 import heapq
-import itertools
-import re
 import sys
 import typing
 from pathlib import Path
 from pprint import pprint  # noqa: F401
 
 import numpy as np
-
-# see parent directory
-# from aoc_tools import *
+import numpy.typing as npt
 
 
-def parse(fname: str) -> list[str]:
+def parse(fname: str) -> npt.NDArray[np.unicode_]:
     """Read from data file. Returns problem specific formatted data."""
     with Path(fname).open() as f:
         lines = [line.strip() for line in f.read().splitlines() if line.strip()]
@@ -27,7 +20,7 @@ def parse(fname: str) -> list[str]:
     return np.array([[c for c in line] for line in lines])
 
 
-def manhattan(p1, p2) -> int:
+def manhattan(p1: tuple[int, int], p2: tuple[int, int]) -> int:
     return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
 
 
