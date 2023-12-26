@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import heapq
 import sys
 import typing
 from pathlib import Path
@@ -11,6 +10,8 @@ from pprint import pprint  # noqa: F401
 import networkx as nx
 import numpy as np
 import numpy.typing as npt
+
+Point = tuple[int, int]
 
 
 def parse(fname: str, p2: bool = False) -> npt.NDArray[np.unicode_]:
@@ -32,7 +33,7 @@ def parse(fname: str, p2: bool = False) -> npt.NDArray[np.unicode_]:
     return arr
 
 
-def manhattan(p1: tuple[int, int], p2: tuple[int, int]) -> int:
+def manhattan(p1: Point, p2: Point) -> int:
     return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
 
 
@@ -51,6 +52,7 @@ def part1(data) -> int:
     ry = range(data.shape[0])
     rx = range(data.shape[1])
 
+    # always annoying with tuple(np.argwhere); `start` *is* a tuple[int, int]
     start = tuple(np.argwhere(data == ".")[0])
     assert start[0] == 0
 
@@ -86,7 +88,9 @@ def part1(data) -> int:
     # default 1k
     sys.setrecursionlimit(141 * 141)
 
-    def dfs(node: tuple[int, int], path: list[tuple[int, int]], depth=0):  # generator?
+    def dfs(
+        node: Point, path: list[Point], depth: int = 0,
+    ) -> typing.Generator[list[Point], None, None]:
         # print(f"{depth=}")
         if node == goal:
             yield [*path, node]
@@ -95,55 +99,10 @@ def part1(data) -> int:
             if next_p not in path:
                 yield from dfs(next_p, [*path, node], depth+1)
 
-    # paths = dfs(start, [])
-    # print("DFS")
-    # for path in paths:
-    #     print("----" * 10)
-    #     print(len(path))
-    #     debug(data, path)
-    #     print("----" * 10)
-
     return max(len(path) for path in dfs(start, [])) - 1
 
-    q = [(-manhattan(start, goal), start)]
 
-    # keep track of visited nodes and the paths to reach them
-    visited = {start: [start]}
-
-    # keep track of just visited nodes
-    # since we're doing BFS we don't have to keep track of path?
-    # visited = set([start])
-
-    print(f"{start=} {goal=}")
-
-    while q:
-        distance, curr = heapq.heappop(q)
-        distance *= -1
-
-        print(f"Popped: {distance=} {curr=}")
-
-        if curr == goal:
-            # found goal! (and i think this is guaranteed to be longest path?)
-            break
-
-        for next_p in neighbors(curr):
-            print(f"Visiting neighbor: {next_p=} {data[next_p]} {next_p in visited}")
-            if next_p in visited:
-                # update info if necessary
-                if len(visited[curr]) + 1 > len(visited[next_p]):
-                    visited[next_p] = visited[curr] + [next_p]
-                    # heapq.heappush(q, (-manhattan(next_p, goal), next_p))
-            else:
-                # visit neighbors of next_p, searching for goal
-                heapq.heappush(q, (-manhattan(next_p, goal), next_p))
-                visited[next_p] = visited[curr] + [next_p]
-
-    # pprint(visited[goal])
-    debug(data, visited[goal])
-    return len(visited[goal])
-
-
-def neighbors(p: tuple[int, int], g: nx.DiGraph) -> typing.Generator[tuple[int, int], None, None]:
+def neighbors(p: Point, g: nx.DiGraph) -> typing.Generator[Point, None, None]:
     for y, x in [
         (-1, 0),
         (0, -1),
@@ -156,8 +115,8 @@ def neighbors(p: tuple[int, int], g: nx.DiGraph) -> typing.Generator[tuple[int, 
 
 
 def dfs(
-    start: tuple[int, int], g: nx.DiGraph, path: list[tuple[int, int]],
-) -> typing.Generator[tuple[int, tuple[int, int]], None, None]:
+    start: Point, g: nx.DiGraph, path: list[Point],
+) -> typing.Generator[tuple[int, Point], None, None]:
     adj = dict(g.adjacency())
     for n in neighbors(start, g):
         if n != start and n not in path and len(adj[n]) != 2:
